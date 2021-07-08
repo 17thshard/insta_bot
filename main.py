@@ -1,13 +1,12 @@
 import os
 import re
+import tempfile
 from collections import deque, defaultdict
 from urllib.parse import urlencode
 
 import aiohttp
 from discord import Intents, Message, File, Embed
 from discord.ext import commands
-import tempfile
-
 
 INSTAGRAM_TOKEN = os.getenv('INSTAGRAM_TOKEN')
 assert INSTAGRAM_TOKEN
