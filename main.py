@@ -3,19 +3,24 @@ import re
 import tempfile
 from collections import deque, defaultdict
 from urllib.parse import urlencode
-
+from instascrape import Post
 import aiohttp
 from discord import Intents, Message, File, Embed
 from discord.ext import commands
 
-INSTAGRAM_TOKEN = os.getenv('INSTAGRAM_TOKEN')
-assert INSTAGRAM_TOKEN
+# INSTAGRAM_TOKEN = os.getenv('INSTAGRAM_TOKEN')
+# assert INSTAGRAM_TOKEN
 
 INSTAGRAM_API = "https://graph.facebook.com/v10.0/instagram_oembed"
 
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 assert DISCORD_TOKEN
 INSTAGRAM_RE = re.compile(r'(https?://www.instagram.com/p/[\w-]+[/\s$])')
+
+SESSIONID = os.getenv('INSTA_SESSION_ID')
+HEADERS = {"user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36",
+           "cookie": f"sessionid={SESSIONID};"}
+
 
 intents = Intents.default()
 intents.messages = True
@@ -54,30 +59,50 @@ def create_embed(link: str, insta_data: dict):
     embed = Embed()
     embed.type = "rich"
     embed.url = link
-    embed.description = "Click on the username above to see this image (and possibly more!) on their Instagram profile."
-    embed.title = insta_data['author_name']
+    embed.description = insta_data['caption']
+    if insta_data['author_name'] != 'nan':
+        embed.title = insta_data['author_name']
+    elif insta_data['username'] != 'nan':
+        embed.title = insta_data['username']
+    else:
+        embed.title = "Couldn't get username"
     # embed.set_author(name=insta_data['author_name'])
     embed.set_image(url=insta_data['thumbnail_url'])
+    embed.add_field(name="Likes:", value=insta_data['likes'])
     # embed.set_thumbnail(url=insta_data['thumbnail_url'])
     embed.set_footer(text="Instagram embeds on Discord are broken, but I'll see what I can do.",
                      icon_url="https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png")
     return embed
 
 
+def get_insta_data(insta_url: str) -> dict:
+    post = Post(insta_url)
+    post.scrape(headers=HEADERS)
+    data = {
+        'thumbnail_url': post.display_url,
+        'title': post.accessibility_caption,
+        'author_name': post.full_name,
+        'caption': post.caption,
+        'likes': post.likes,
+    }
+    return data
+
+
 async def process_message_link(message: Message, link: str):
-    params = {
-        'url': link,
-        'maxwidth': 800,
-        'fields': 'thumbnail_url,author_name,thumbnail_width,thumbnail_height',
-    }
-    headers = {
-        'Authorization': f"Bearer {INSTAGRAM_TOKEN}"
-    }
+    # params = {
+    #     'url': link,
+    #     'maxwidth': 800,
+    #     'fields': 'thumbnail_url,author_name,thumbnail_width,thumbnail_height',
+    # }
+    # headers = {
+    #     'Authorization': f"Bearer {INSTAGRAM_TOKEN}"
+    # }
     async with message.channel.typing():
         async with aiohttp.ClientSession() as session:
-            async with session.get(INSTAGRAM_API + '?' + urlencode(params), headers=headers,
-                                   allow_redirects=True) as resp:
-                insta_data = await resp.json()
+            # async with session.get(INSTAGRAM_API + '?' + urlencode(params), headers=headers,
+            #                        allow_redirects=True) as resp:
+            #     insta_data = await resp.json()
+            insta_data = get_insta_data(link)
             if is_spoiler(message.content, link):
                 async with session.get(insta_data['thumbnail_url']) as img:
                     img = await img.read()

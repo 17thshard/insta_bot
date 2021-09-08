@@ -6,6 +6,9 @@ name = "pypi"
 [packages]
 "discord.py" = "*"
 aiohttp = "*"
+igramscraper = "*"
+instagramy = "*"
+insta-scrape = "*"
 
 [dev-packages]
 
