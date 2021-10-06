@@ -55,6 +55,13 @@ def is_spoiler(message_text: str, link: str) -> bool:
     return spoiler_tags_count % 2 == 1
 
 
+def no_preview(message_text: str, link: str) -> bool:
+    """
+    Checks if the found url is inside the no-preview <brackets>.
+    """
+    return f"<{link}>" in message_text
+
+
 def create_embed(link: str, insta_data: dict):
     embed = Embed()
     embed.type = "rich"
@@ -89,14 +96,9 @@ def get_insta_data(insta_url: str) -> dict:
 
 
 async def process_message_link(message: Message, link: str):
-    # params = {
-    #     'url': link,
-    #     'maxwidth': 800,
-    #     'fields': 'thumbnail_url,author_name,thumbnail_width,thumbnail_height',
-    # }
-    # headers = {
-    #     'Authorization': f"Bearer {INSTAGRAM_TOKEN}"
-    # }
+    if no_preview(message.content, link):
+        return
+
     async with message.channel.typing():
         async with aiohttp.ClientSession() as session:
             # async with session.get(INSTAGRAM_API + '?' + urlencode(params), headers=headers,
