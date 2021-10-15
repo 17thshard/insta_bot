@@ -28,10 +28,13 @@ ENV PATH="/.venv/bin:$PATH"
 # Create and switch to a new user
 RUN useradd --create-home appuser
 WORKDIR /home/appuser
-USER appuser
+
 
 # Install application into container
-COPY . .
+COPY main.py .
+RUN chown appuser /home/appuser/main.py
+
+USER appuser
 
 # Run the application
 ENTRYPOINT ["python", "main.py"]

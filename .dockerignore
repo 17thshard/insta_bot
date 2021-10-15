@@ -1,0 +1,5 @@
+auth.txt
+k8s/
+.idea
+.git/
+.gitignore

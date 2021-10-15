@@ -1,25 +1,36 @@
+# Copyright 2021 Mestiv
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import re
 import tempfile
 from collections import deque, defaultdict
-from urllib.parse import urlencode
-from instascrape import Post
+
 import aiohttp
 from discord import Intents, Message, File, Embed
 from discord.ext import commands
-
-# INSTAGRAM_TOKEN = os.getenv('INSTAGRAM_TOKEN')
-# assert INSTAGRAM_TOKEN
-
-INSTAGRAM_API = "https://graph.facebook.com/v10.0/instagram_oembed"
+from instascrape import Post
 
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 assert DISCORD_TOKEN
 INSTAGRAM_RE = re.compile(r'(https?://www.instagram.com/p/[\w-]+[/\s$])')
 
-SESSIONID = os.getenv('INSTA_SESSION_ID')
+INSTA_SESSION_ID = os.getenv('INSTA_SESSION_ID')
+assert INSTA_SESSION_ID
+
 HEADERS = {"user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36",
-           "cookie": f"sessionid={SESSIONID};"}
+           "cookie": f"sessionid={INSTA_SESSION_ID};"}
 
 
 intents = Intents.default()
@@ -62,7 +73,10 @@ def no_preview(message_text: str, link: str) -> bool:
     return f"<{link}>" in message_text
 
 
-def create_embed(link: str, insta_data: dict):
+def create_embed(link: str, insta_data: dict) -> Embed:
+    """
+    Prepare the embed object to be posted.
+    """
     embed = Embed()
     embed.type = "rich"
     embed.url = link
@@ -73,16 +87,19 @@ def create_embed(link: str, insta_data: dict):
         embed.title = insta_data['username']
     else:
         embed.title = "Couldn't get username"
-    # embed.set_author(name=insta_data['author_name'])
+
     embed.set_image(url=insta_data['thumbnail_url'])
     embed.add_field(name="Likes:", value=insta_data['likes'])
-    # embed.set_thumbnail(url=insta_data['thumbnail_url'])
+
     embed.set_footer(text="Instagram embeds on Discord are broken, but I'll see what I can do.",
                      icon_url="https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png")
     return embed
 
 
 def get_insta_data(insta_url: str) -> dict:
+    """
+    Scrape data about posted link from Instagram.
+    """
     post = Post(insta_url)
     post.scrape(headers=HEADERS)
     data = {
@@ -96,14 +113,14 @@ def get_insta_data(insta_url: str) -> dict:
 
 
 async def process_message_link(message: Message, link: str):
+    """
+    Get info from Instagram and post a reply with the preview.
+    """
     if no_preview(message.content, link):
         return
 
     async with message.channel.typing():
         async with aiohttp.ClientSession() as session:
-            # async with session.get(INSTAGRAM_API + '?' + urlencode(params), headers=headers,
-            #                        allow_redirects=True) as resp:
-            #     insta_data = await resp.json()
             insta_data = get_insta_data(link)
             if is_spoiler(message.content, link):
                 async with session.get(insta_data['thumbnail_url']) as img:
@@ -114,16 +131,17 @@ async def process_message_link(message: Message, link: str):
                     discord_file = File(tmp_file.name)
                     sent_message = await message.channel.send(
                                     content=f'Visit <{link}> to see this image '
-                                            f'(and possibly more!) on authors Instagram page.',
+                                            f'(and possibly more!) on authors Instagram page.\n\n' 
+                                            f'{insta_data.caption}',
                                     file=discord_file,
                                     reference=message, mention_author=False)
             else:
                 sent_message = await message.channel.send(embed=create_embed(link, insta_data),
                                                           reference=message, mention_author=False)
 
-            LINK_TO_MESSAGE[link] = sent_message
-            MESSAGE_TO_MESSAGE[message.id].append(sent_message)
-            LINK_QUEUE.appendleft(link)
+    LINK_TO_MESSAGE[link] = sent_message
+    MESSAGE_TO_MESSAGE[message.id].append(sent_message)
+    LINK_QUEUE.appendleft(link)
 
 
 @bot.event
