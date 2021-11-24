@@ -17,9 +17,8 @@ There are many ways to run this bot, but I'll describe two.
 
 ### Running the bot directly
 
-1. If you don't have it, install [`pipenv`](https://pypi.org/project/pipenv/).
-2. Run `pipenv sync` to download all dependencies.
-3. Run the bot with `pipenv run python3 main.py`
+1. Install dependencies with `pip install -Ur requirements.txt`
+2. Run the bot: `python3 main.py`
 
 ### Using Docker to run the bot
 

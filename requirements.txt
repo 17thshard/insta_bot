@@ -1,0 +1,4 @@
+hikari
+hikari[speedups]
+insta-scrape
+aiohttp

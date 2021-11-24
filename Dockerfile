@@ -10,13 +10,12 @@ ENV PYTHONFAULTHANDLER 1
 FROM base AS python-deps
 
 # Install pipenv and compilation dependencies
-RUN pip install pipenv
-#RUN apt-get update && apt-get install -y --no-install-recommends gcc
+RUN apt update && apt upgrade -y && apt install -y gcc
 
 # Install python dependencies in /.venv
-COPY Pipfile .
-COPY Pipfile.lock .
-RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy
+COPY requirements.txt .
+RUN python3 -m venv /.venv
+RUN /.venv/bin/pip install -Ur requirements.txt
 
 
 FROM base AS runtime
