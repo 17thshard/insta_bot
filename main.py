@@ -22,6 +22,7 @@ import hikari.embeds
 import hikari.files
 from instascrape import Post
 
+
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 assert DISCORD_TOKEN
 INSTAGRAM_RE = re.compile(r'(https?://www.instagram.com/p/[\w-]+[/\s$])')
@@ -110,7 +111,7 @@ def create_embed(link: str, insta_data: dict) -> hikari.embeds.Embed:
     return embed
 
 
-async def process_message_link(message: hikari.GuildMessageCreateEvent, link: str):
+async def process_message_link(message: hikari.MessageEvent, link: str):
     """
     Get info from Instagram and post a reply with the preview.
     """
@@ -130,7 +131,7 @@ async def process_message_link(message: hikari.GuildMessageCreateEvent, link: st
                 sent_message = await message.get_channel().send(
                     content=f'Visit <{link}> to see this image '
                             f'(and possibly more!) on authors Instagram page.\n\n'
-                            f'{insta_data.caption}',
+                            f'{insta_data["caption"]}',
                     attachment=discord_file,
                     reply=message.message, mentions_reply=False)
         else:
