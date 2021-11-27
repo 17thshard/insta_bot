@@ -160,6 +160,8 @@ async def create_message(event: hikari.GuildMessageCreateEvent) -> None:
 
 @bot.listen()
 async def edit_message(event: hikari.GuildMessageUpdateEvent) -> None:
+    if not event.old_message:
+        return
     if not event.old_message.content:
         return
     if not event.message.content:
